@@ -72,7 +72,8 @@ fun LoginScreen(
                 label = { Text("Email / Usuario") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                enabled = !state.loading
             )
 
             Spacer(Modifier.height(12.dp))
@@ -85,7 +86,8 @@ fun LoginScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                enabled = !state.loading
             )
 
             Spacer(Modifier.height(16.dp))
@@ -97,11 +99,12 @@ fun LoginScreen(
 
             Button(
                 onClick = { vm.login(onSuccess = onLoggedIn) },
+                enabled = !state.loading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
             ) {
-                Text("Entrar")
+                Text(if (state.loading) "Cargando..." else "Entrar")
             }
         }
     }
