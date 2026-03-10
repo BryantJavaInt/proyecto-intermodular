@@ -74,6 +74,25 @@ Cuando el usuario se registra o inicia sesión, la información queda almacenada
 
 ---
 
+# Desarrollo de la interfaz de usuario
+
+La interfaz inicial de la aplicación ha sido desarrollada utilizando **Jetpack Compose**.
+
+Se ha implementado una **pantalla de login funcional**, que incluye:
+
+- Visualización del **logo de la aplicación**.
+- Selección del **tipo de usuario** mediante un desplegable (Inquilino, Agencia o Dueño).
+- Campos de entrada para **email/usuario** y **contraseña**.
+- Validación básica de los datos introducidos por el usuario antes de iniciar sesión.
+
+La pantalla de login se encuentra conectada con el **LoginViewModel**, que gestiona el estado de la interfaz y la lógica de autenticación.
+
+También se ha implementado la **navegación básica de la aplicación**, permitiendo acceder a una pantalla inicial (**HomeScreen**) una vez completado el proceso de login.
+
+Esta pantalla sirve como base para el desarrollo de las siguientes vistas de la aplicación, donde se implementarán las funcionalidades de gestión de incidencias.
+
+---
+
 # Verificación mediante Database Inspector
 
 Para comprobar que los datos se almacenan correctamente:
