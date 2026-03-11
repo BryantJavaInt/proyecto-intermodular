@@ -53,7 +53,7 @@ Configuración de la base de datos.
 
 - `InmobiliaDatabase.kt` → Configuración de Room y acceso a la base de datos.
 
-### repository
+## repository
 Capa intermedia entre la base de datos y la interfaz.
 
 - `UserRepository.kt` → Gestiona el acceso a los datos desde la aplicación.
