@@ -1,6 +1,10 @@
 package com.example.inmobiliacontrol
 
 import android.os.Bundle
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -37,5 +41,37 @@ class MainActivity : AppCompatActivity() {
         // 4. Creamos el adaptador pasándole nuestros datos y lo conectamos a la lista
         val adapter = TicketAdapter(misIncidencias)
         rvTickets.adapter = adapter
+
+        // --- LÓGICA DEL MENÚ DESPLEGABLE (SPINNER) ---
+
+        // 5. Buscamos el Spinner en el XML y preparamos las opciones
+        val spinnerFiltro = findViewById<Spinner>(R.id.spinnerFiltro)
+        val opcionesFiltro = arrayOf("Todas", "Abierta", "En proceso", "Resuelta")
+
+        // 6. Conectamos las opciones al Spinner usando un adaptador sencillo
+        val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, opcionesFiltro)
+        spinnerFiltro.adapter = spinnerAdapter
+
+        // 7. Escuchamos cuando el usuario toca una opción del menú
+        spinnerFiltro.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val estadoSeleccionado = opcionesFiltro[position]
+
+                // Filtramos la lista original según lo que se haya elegido
+                val listaFiltrada = if (estadoSeleccionado == "Todas") {
+                    misIncidencias // Si elige "Todas", mostramos la lista entera
+                } else {
+                    // Si elige un estado, filtramos buscando esa palabra exacta
+                    misIncidencias.filter { it.estado.uppercase() == estadoSeleccionado.uppercase() }
+                }
+
+                // Le pasamos la nueva lista recortada a tu TicketAdapter
+                adapter.actualizarLista(listaFiltrada)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                // No necesitamos hacer nada aquí
+            }
+        }
     }
 }

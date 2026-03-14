@@ -8,10 +8,13 @@ import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 
-class TicketAdapter(private val ticketList: List<TicketMock>) :
+class TicketAdapter(private var ticketList: List<TicketMock>) :
     RecyclerView.Adapter<TicketAdapter.TicketViewHolder>() {
 
     class TicketViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        // 1. Enganchamos la tarjeta principal aquí
+        val mainCard: CardView = view.findViewById(R.id.mainCard)
+
         val tvTitulo: TextView = view.findViewById(R.id.tvTitulo)
         val tvFecha: TextView = view.findViewById(R.id.tvFecha)
         val tvDescripcion: TextView = view.findViewById(R.id.tvDescripcion)
@@ -55,22 +58,36 @@ class TicketAdapter(private val ticketList: List<TicketMock>) :
             }
         }
 
-        // Lógica de colores para ESTADO
+        // Lógica de colores para ESTADO y fondo general
         when (ticket.estado.uppercase()) {
             "ABIERTA" -> {
-                holder.cardEstado.setCardBackgroundColor(ContextCompat.getColor(context, R.color.estado_abierta_bg))
+                val colorAbierta = ContextCompat.getColor(context, R.color.estado_abierta_bg)
+                // 2. Usamos mainCard en lugar de itemView
+                holder.mainCard.setCardBackgroundColor(colorAbierta)
+                holder.cardEstado.setCardBackgroundColor(colorAbierta)
                 holder.tvEstado.setTextColor(ContextCompat.getColor(context, R.color.estado_abierta_txt))
             }
             "EN PROCESO", "PROCESO" -> {
-                holder.cardEstado.setCardBackgroundColor(ContextCompat.getColor(context, R.color.estado_proceso_bg))
+                val colorProceso = ContextCompat.getColor(context, R.color.estado_proceso_bg)
+                // 2. Usamos mainCard en lugar de itemView
+                holder.mainCard.setCardBackgroundColor(colorProceso)
+                holder.cardEstado.setCardBackgroundColor(colorProceso)
                 holder.tvEstado.setTextColor(ContextCompat.getColor(context, R.color.estado_proceso_txt))
             }
             "RESUELTA" -> {
-                holder.cardEstado.setCardBackgroundColor(ContextCompat.getColor(context, R.color.estado_resuelta_bg))
+                val colorResuelta = ContextCompat.getColor(context, R.color.estado_resuelta_bg)
+                // 2. Usamos mainCard en lugar de itemView
+                holder.mainCard.setCardBackgroundColor(colorResuelta)
+                holder.cardEstado.setCardBackgroundColor(colorResuelta)
                 holder.tvEstado.setTextColor(ContextCompat.getColor(context, R.color.estado_resuelta_txt))
             }
         }
     }
 
     override fun getItemCount(): Int = ticketList.size
+
+    fun actualizarLista(nuevaLista: List<TicketMock>) {
+        ticketList = nuevaLista
+        notifyDataSetChanged()
+    }
 }
