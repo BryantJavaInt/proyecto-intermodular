@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#F5F5F5">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Nueva incidencia"
+        android:textSize="22sp"
+        android:textColor="#264378"
+        android:fontFamily="@font/montserratbold"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Categoría:"
+        android:fontFamily="@font/montserratregular"
+        android:textColor="#264378" />
+
+    <Spinner
+        android:id="@+id/spinnerCategoria"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Título:"
+        android:fontFamily="@font/montserratregular"
+        android:textColor="#264378" />
+
+    <EditText
+        android:id="@+id/etTitulo"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:background="#FFFFFF"
+        android:padding="8dp"
+        android:layout_marginBottom="16dp"
+        android:fontFamily="@font/montserratregular" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Descripción:"
+        android:fontFamily="@font/montserratregular"
+        android:textColor="#264378" />
+
+    <EditText
+        android:id="@+id/etDescripcion"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:gravity="top|start"
+        android:background="#FFFFFF"
+        android:padding="8dp"
+        android:layout_marginBottom="16dp"
+        android:fontFamily="@font/montserratregular" />
+
+    <TextView
+        android:id="@+id/tvPrioridad"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Prioridad:"
+        android:fontFamily="@font/montserratregular"
+        android:textColor="#264378" />
+
+    <RadioGroup
+        android:id="@+id/rgPrioridad"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="24dp">
+
+        <RadioButton
+            android:id="@+id/rbBaja"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Baja"
+            android:fontFamily="@font/montserratregular"
+            android:layout_weight="1"/>
+
+        <RadioButton
+            android:id="@+id/rbMedia"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Media"
+            android:fontFamily="@font/montserratregular"
+            android:layout_weight="1"/>
+
+        <RadioButton
+            android:id="@+id/rbAlta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Alta"
+            android:fontFamily="@font/montserratregular"
+            android:layout_weight="1"/>
+    </RadioGroup>
+
+    <Button
+        android:id="@+id/btnGuardar"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="GUARDAR INCIDENCIA"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#2777da"
+        android:fontFamily="@font/montserratbold"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btnCancelar"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="Cancelar"
+        android:textColor="#2777da"
+        android:backgroundTint="#00000000"
+        style="?attr/materialButtonOutlinedStyle"
+        android:fontFamily="@font/montserratregular"/>
+</LinearLayout>

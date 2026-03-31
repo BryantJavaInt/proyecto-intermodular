@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/logo_watermark"
+        android:scaleType="fitCenter"
+        android:layout_centerInParent="true"
+        android:alpha="0.15" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Selecciona una especialidad"
+            android:textSize="22sp"
+            android:textColor="#264378"
+            android:fontFamily="@font/montserratregular"
+            android:layout_marginBottom="32dp" />
+
+        <Button
+            android:id="@+id/btnFontanero"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Fontanero"
+            android:textColor="#FFFFFF"
+            android:fontFamily="@font/montserratregular"
+            android:backgroundTint="#2777da"
+            android:alpha="0.85"
+            android:layout_marginBottom="12dp"/>
+
+        <Button
+            android:id="@+id/btnElectricista"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Electricista"
+            android:textColor="#FFFFFF"
+            android:fontFamily="@font/montserratregular"
+            android:backgroundTint="#2777da"
+            android:alpha="0.85"
+            android:layout_marginBottom="12dp"/>
+
+        <Button
+            android:id="@+id/btnAlbanil"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Albañil"
+            android:textColor="#FFFFFF"
+            android:fontFamily="@font/montserratregular"
+            android:backgroundTint="#2777da"
+            android:alpha="0.85"
+            android:layout_marginBottom="12dp"/>
+
+        <Button
+            android:id="@+id/btnManitas"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Manitas"
+            android:textColor="#FFFFFF"
+            android:fontFamily="@font/montserratregular"
+            android:backgroundTint="#2777da"
+            android:alpha="0.85"
+            android:layout_marginBottom="32dp"/>
+
+        <Button
+            android:id="@+id/btnTodas"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Ver todas las incidencias"
+            android:textColor="#FFFFFF"
+            android:fontFamily="@font/montserratregular"
+            android:backgroundTint="#4CAF50"
+            android:alpha="0.85"/>
+
+    </LinearLayout>
+</RelativeLayout>

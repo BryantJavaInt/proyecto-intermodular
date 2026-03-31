@@ -5,24 +5,19 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5"
     tools:context=".MainActivity">
 
     <ImageView
         android:id="@+id/ivWatermark"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:alpha="1.0"
-        android:scaleType="fitCenter"
-        android:src="@drawable/logo_watermark"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:alpha="0.1"
+        android:scaleType="centerInside"
+        android:src="@drawable/logo_watermark" />
 
     <Spinner
         android:id="@+id/spinnerFiltro"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
         android:minHeight="48dp"
@@ -32,16 +27,24 @@
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvTickets"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:alpha="0.88"
-        android:clipToPadding="false"
-        android:paddingTop="8dp"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        android:layout_marginTop="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/spinnerFiltro"
         tools:listitem="@layout/item_ticket_card" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnNuevaIncidencia"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="24dp"
+        android:src="@android:drawable/ic_input_add"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:tint="@android:color/white"
+        app:backgroundTint="#2777da" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

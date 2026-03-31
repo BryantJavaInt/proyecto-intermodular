@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#F5F5F5">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Detalles de la avería"
+        android:textSize="22sp"
+        android:textColor="#264378"
+        android:fontFamily="@font/montserratbold"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:id="@+id/tvTituloDetalle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Título"
+        android:textSize="18sp"
+        android:textColor="#2777da"
+        android:fontFamily="@font/montserratbold"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:id="@+id/tvDescripcionDetalle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Descripción completa..."
+        android:fontFamily="@font/montserratregular"
+        android:layout_marginBottom="24dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Estado actual:"
+        android:fontFamily="@font/montserratregular"
+        android:textColor="#264378" />
+
+    <Spinner
+        android:id="@+id/spinnerEstado"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Prioridad asignada:"
+        android:fontFamily="@font/montserratregular"
+        android:textColor="#264378" />
+
+    <Spinner
+        android:id="@+id/spinnerPrioridad"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginBottom="32dp" />
+
+    <Button
+        android:id="@+id/btnActualizar"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="GUARDAR CAMBIOS"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#2777da"
+        android:fontFamily="@font/montserratbold"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btnVolver"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="Volver atrás"
+        android:textColor="#2777da"
+        android:backgroundTint="#00000000"
+        style="?attr/materialButtonOutlinedStyle"
+        android:fontFamily="@font/montserratregular"/>
+</LinearLayout>

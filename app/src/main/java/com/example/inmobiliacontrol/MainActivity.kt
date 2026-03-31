@@ -1,5 +1,6 @@
 package com.example.inmobiliacontrol
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
@@ -11,8 +12,26 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        val misIncidencias = mutableListOf(
+            TicketMock(1, "Fuga en baño", "El agua sale por debajo del lavabo...", "Alta", "Abierta", "12/03/2026", "Fontanero", "Casa 1"),
+            TicketMock(2, "Electricidad salon", "El enchufe principal no funciona...", "Media", "En proceso", "10/03/2026", "Electricista", "Casa 2"),
+            TicketMock(3, "Humedad en techo", "Mancha de humedad en la esquina...", "Alta", "Abierta", "09/03/2026", "Albañil", "Casa 1"),
+            TicketMock(4, "Puerta atascada", "La puerta del portal roza...", "Baja", "Resuelta", "01/03/2026", "Cerrajero", "Casa 3"),
+            TicketMock(5, "Grifo gotea", "El grifo de la cocina no cierra bien", "Baja", "Abierta", "15/03/2026", "Fontanero", "Casa 2")
+        )
+    }
+
+    private var listaFiltradaPorCategoria: List<TicketMock> = listOf()
+    private lateinit var adapter: TicketAdapter
+    private var categoriaRecibida = "Todas"
+    private var rolUsuario = "Inquilino"
+    private var casaUsuario = "Casa 1"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -24,54 +43,68 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        // 1. Creamos nuestra lista de datos inventados (Mock Data)
-        val misIncidencias = listOf(
-            TicketMock(1, "Fuga en baño", "El agua sale por debajo del lavabo cuando abro el grifo.", "ALTA", "Abierta", "12/03/2025 10:30"),
-            TicketMock(2, "Electricidad salón", "El enchufe principal no funciona desde ayer.", "MEDIA", "En proceso", "10/03/2025 15:45"),
-            TicketMock(3, "Humedad en techo", "Mancha de humedad creciendo en la esquina del dormitorio.", "ALTA", "Abierta", "09/03/2025 09:15"),
-            TicketMock(4, "Puerta atascada", "La puerta del portal roza y cuesta mucho abrirla.", "BAJA", "Resuelta", "01/03/2025 11:20")
-        )
+        categoriaRecibida = intent.getStringExtra("FILTRO_CATEGORIA") ?: "Todas"
+        rolUsuario = intent.getStringExtra("ROL_USUARIO") ?: "Inquilino"
+        casaUsuario = intent.getStringExtra("CASA_USUARIO") ?: "Casa 1"
 
-        // 2. Buscamos la lista (RecyclerView) en nuestro diseño XML
         val rvTickets = findViewById<RecyclerView>(R.id.rvTickets)
-
-        // 3. Le decimos que los elementos se pongan uno debajo de otro
         rvTickets.layoutManager = LinearLayoutManager(this)
-
-        // 4. Creamos el adaptador pasándole nuestros datos y lo conectamos a la lista
-        val adapter = TicketAdapter(misIncidencias)
+        adapter = TicketAdapter(listaFiltradaPorCategoria)
         rvTickets.adapter = adapter
 
-        // --- LÓGICA DEL MENÚ DESPLEGABLE (SPINNER) ---
-
-        // 5. Buscamos el Spinner en el XML y preparamos las opciones
         val spinnerFiltro = findViewById<Spinner>(R.id.spinnerFiltro)
         val opcionesFiltro = arrayOf("Todas", "Abierta", "En proceso", "Resuelta")
-
-        // 6. Conectamos las opciones al Spinner usando un adaptador sencillo
         val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, opcionesFiltro)
         spinnerFiltro.adapter = spinnerAdapter
 
-        // 7. Escuchamos cuando el usuario toca una opción del menú
         spinnerFiltro.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val estadoSeleccionado = opcionesFiltro[position]
-
-                // Filtramos la lista original según lo que se haya elegido
-                val listaFiltrada = if (estadoSeleccionado == "Todas") {
-                    misIncidencias // Si elige "Todas", mostramos la lista entera
-                } else {
-                    // Si elige un estado, filtramos buscando esa palabra exacta
-                    misIncidencias.filter { it.estado.uppercase() == estadoSeleccionado.uppercase() }
-                }
-
-                // Le pasamos la nueva lista recortada a tu TicketAdapter
-                adapter.actualizarLista(listaFiltrada)
+                actualizarListaEnPantalla()
             }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
 
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                // No necesitamos hacer nada aquí
+        val btnNuevaIncidencia = findViewById<FloatingActionButton>(R.id.btnNuevaIncidencia)
+
+        // ocultamos el boton si eres mantenimiento
+        if (rolUsuario == "Mantenimiento") {
+            btnNuevaIncidencia.visibility = View.GONE
+        } else {
+            btnNuevaIncidencia.visibility = View.VISIBLE
+            btnNuevaIncidencia.setOnClickListener {
+                val intent = Intent(this, CrearIncidenciaActivity::class.java)
+                intent.putExtra("ROL_USUARIO", rolUsuario)
+                intent.putExtra("CASA_USUARIO", casaUsuario)
+                startActivity(intent)
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        actualizarListaEnPantalla()
+    }
+
+    private fun actualizarListaEnPantalla() {
+        listaFiltradaPorCategoria = if (rolUsuario == "Inquilino") {
+            misIncidencias.filter { it.casa == casaUsuario }
+        } else {
+            if (categoriaRecibida == "Todas") {
+                misIncidencias
+            } else {
+                misIncidencias.filter { it.categoria == categoriaRecibida }
+            }
+        }
+
+        val spinnerFiltro = findViewById<Spinner>(R.id.spinnerFiltro)
+        val estadoSeleccionado = spinnerFiltro.selectedItem?.toString() ?: "Todas"
+
+        val listaDobleFiltro = if (estadoSeleccionado == "Todas") {
+            listaFiltradaPorCategoria
+        } else {
+            listaFiltradaPorCategoria.filter { it.estado.uppercase() == estadoSeleccionado.uppercase() }
+        }
+
+        adapter.actualizarLista(listaDobleFiltro)
     }
 }
