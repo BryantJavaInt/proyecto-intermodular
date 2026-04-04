@@ -23,8 +23,6 @@ fun LoginScreen(
     vm: LoginViewModel = viewModel()
 ) {
     val state by vm.uiState.collectAsState()
-
-    // Fondo azul suave
     val softBlue = Color(0xFFEAF3FF)
 
     Surface(
@@ -39,7 +37,6 @@ fun LoginScreen(
         ) {
             Spacer(Modifier.height(10.dp))
 
-            // Logo
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -57,7 +54,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(10.dp))
 
-            // Dropdown de rol
             RoleDropdown(
                 selectedRole = state.role,
                 onRoleSelected = vm::setRole
@@ -65,7 +61,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // Campo Email/Usuario (filtra emojis y caracteres raros)
             OutlinedTextField(
                 value = state.email,
                 onValueChange = { vm.setEmail(sanitizeUserInput(it)) },
@@ -78,7 +73,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // Contraseña (filtra emojis y caracteres raros)
             OutlinedTextField(
                 value = state.password,
                 onValueChange = { vm.setPassword(sanitizePasswordInput(it)) },
@@ -120,7 +114,7 @@ private fun RoleDropdown(
     val label = when (selectedRole) {
         Role.TENANT -> "Inquilino"
         Role.AGENCY -> "Agencia"
-        Role.OWNER -> "Dueño"
+        Role.MAINTENANCE -> "Mantenimiento"
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -137,7 +131,6 @@ private fun RoleDropdown(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Capa transparente para capturar el click en todo el campo
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -151,33 +144,34 @@ private fun RoleDropdown(
         ) {
             DropdownMenuItem(
                 text = { Text("Inquilino") },
-                onClick = { onRoleSelected(Role.TENANT); expanded = false }
+                onClick = {
+                    onRoleSelected(Role.TENANT)
+                    expanded = false
+                }
             )
             DropdownMenuItem(
                 text = { Text("Agencia") },
-                onClick = { onRoleSelected(Role.AGENCY); expanded = false }
+                onClick = {
+                    onRoleSelected(Role.AGENCY)
+                    expanded = false
+                }
             )
             DropdownMenuItem(
-                text = { Text("Dueño") },
-                onClick = { onRoleSelected(Role.OWNER); expanded = false }
+                text = { Text("Mantenimiento") },
+                onClick = {
+                    onRoleSelected(Role.MAINTENANCE)
+                    expanded = false
+                }
             )
         }
     }
 }
 
-/**
- * Permite letras, números, espacios y caracteres típicos de email/usuario.
- * El resto (incluidos emojis) se elimina.
- */
 private fun sanitizeUserInput(input: String): String {
     val disallowed = Regex("[^a-zA-Z0-9@._\\-\\s]")
     return input.replace(disallowed, "")
 }
 
-/**
- * Permite letras, números y algunos símbolos comunes.
- * El resto (incluidos emojis) se elimina.
- */
 private fun sanitizePasswordInput(input: String): String {
     val disallowed = Regex("[^a-zA-Z0-9._\\-]")
     return input.replace(disallowed, "")
