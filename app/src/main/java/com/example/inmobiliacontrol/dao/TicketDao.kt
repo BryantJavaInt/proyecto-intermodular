@@ -21,9 +21,12 @@ interface TicketDao {
     @Query("SELECT * FROM tickets WHERE status = :status ORDER BY createdAt DESC")
     suspend fun getTicketsByStatus(status: String): List<Ticket>
 
-    @Query("UPDATE tickets SET status = :newStatus WHERE ticketId = :ticketId")
-    suspend fun updateTicketStatus(ticketId: Int, newStatus: String)
-
     @Query("SELECT * FROM tickets WHERE ticketId = :ticketId LIMIT 1")
     suspend fun getTicketById(ticketId: Int): Ticket?
+
+    @Query("UPDATE tickets SET status = :newStatus, updatedAt = :updatedAt WHERE ticketId = :ticketId")
+    suspend fun updateTicketStatus(ticketId: Int, newStatus: String, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("DELETE FROM tickets WHERE ticketId = :ticketId")
+    suspend fun deleteTicket(ticketId: Int)
 }

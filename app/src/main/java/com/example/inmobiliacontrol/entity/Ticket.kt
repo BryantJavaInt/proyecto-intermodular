@@ -13,10 +13,17 @@ import androidx.room.PrimaryKey
             parentColumns = ["id"],
             childColumns = ["createdByUserId"],
             onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = Property::class,
+            parentColumns = ["propertyId"],
+            childColumns = ["propertyId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ],
     indices = [
-        Index(value = ["createdByUserId"])
+        Index(value = ["createdByUserId"]),
+        Index(value = ["propertyId"])
     ]
 )
 data class Ticket(
@@ -28,5 +35,7 @@ data class Ticket(
     val priority: String,
     val status: String,
     val createdAt: Long = System.currentTimeMillis(),
-    val createdByUserId: Int
+    val updatedAt: Long = System.currentTimeMillis(),
+    val createdByUserId: Int,
+    val propertyId: Int? = null
 )

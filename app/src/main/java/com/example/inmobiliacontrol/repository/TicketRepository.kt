@@ -10,7 +10,8 @@ class TicketRepository(private val ticketDao: TicketDao) {
         description: String,
         category: String,
         priority: String,
-        createdByUserId: Int
+        createdByUserId: Int,
+        propertyId: Int? = null
     ): Long {
         val ticket = Ticket(
             title = title.trim(),
@@ -18,7 +19,8 @@ class TicketRepository(private val ticketDao: TicketDao) {
             category = category.trim(),
             priority = priority.trim(),
             status = "Abierto",
-            createdByUserId = createdByUserId
+            createdByUserId = createdByUserId,
+            propertyId = propertyId
         )
         return ticketDao.insertTicket(ticket)
     }
@@ -35,11 +37,15 @@ class TicketRepository(private val ticketDao: TicketDao) {
         return ticketDao.getTicketsByStatus(status)
     }
 
+    suspend fun getTicketById(ticketId: Int): Ticket? {
+        return ticketDao.getTicketById(ticketId)
+    }
+
     suspend fun updateTicketStatus(ticketId: Int, newStatus: String) {
         ticketDao.updateTicketStatus(ticketId, newStatus)
     }
 
-    suspend fun getTicketById(ticketId: Int): Ticket? {
-        return ticketDao.getTicketById(ticketId)
+    suspend fun deleteTicket(ticketId: Int) {
+        ticketDao.deleteTicket(ticketId)
     }
 }
