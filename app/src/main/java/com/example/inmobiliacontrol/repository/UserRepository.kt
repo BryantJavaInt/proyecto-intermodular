@@ -5,14 +5,13 @@ import com.example.inmobiliacontrol.entity.User
 
 class UserRepository(private val userDao: UserDao) {
 
-    suspend fun register(email: String, password: String, role: String = "TENANT") {
-        userDao.upsert(
-            User(
-                email = email.trim(),
-                password = password,
-                role = role
-            )
+    suspend fun register(email: String, password: String): Long {
+        val user = User(
+            email = email.trim(),
+            password = password
         )
+        userDao.upsert(user)
+        return userDao.getByEmail(email.trim())?.id?.toLong() ?: -1L
     }
 
     suspend fun login(email: String, password: String): User? {
@@ -25,3 +24,4 @@ class UserRepository(private val userDao: UserDao) {
 
     suspend fun getAll(): List<User> = userDao.getAll()
 }
+

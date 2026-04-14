@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -23,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -30,12 +30,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.inmobiliacontrol.Role
 import com.example.inmobiliacontrol.database.InmobiliaDatabase
+import com.example.inmobiliacontrol.entity.Property
 import com.example.inmobiliacontrol.entity.Ticket
+import com.example.inmobiliacontrol.repository.PropertyRepository
 import com.example.inmobiliacontrol.repository.TicketRepository
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -43,31 +45,49 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun TicketListScreen(role: Role) {
+fun TicketListScreen(role: Role, userId: Int) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val repository = remember {
-        val db = InmobiliaDatabase.getInstance(context)
-        TicketRepository(db.ticketDao())
-    }
+    val db = remember { InmobiliaDatabase.getInstance(context) }
+    val ticketRepository = remember { TicketRepository(db.ticketDao()) }
+    val propertyRepository = remember { PropertyRepository(db.propertyDao()) }
 
     val tickets = remember { mutableStateListOf<Ticket>() }
+    val propertyMap = remember { mutableStateMapOf<Int, Property>() }
+
     var loading by remember { mutableStateOf(true) }
 
     fun recargarTickets() {
         scope.launch {
             loading = true
             tickets.clear()
+            propertyMap.clear()
 
-            val userId = 1
-
-            val data = when (role) {
-                Role.TENANT -> repository.getTicketsByUser(userId)
-                else -> repository.getAllTickets()
+            val allData = when (role) {
+                Role.TENANT -> ticketRepository.getTicketsByUser(userId)
+                else -> ticketRepository.getAllTickets()
             }
 
-            tickets.addAll(data)
+            val filteredData = when (role) {
+                Role.TENANT -> allData
+                Role.AGENCY -> allData
+                Role.MAINTENANCE -> allData.filter {
+                    it.status.equals("En proceso", ignoreCase = true) ||
+                            it.status.equals("Cerrado", ignoreCase = true)
+                }
+            }
+
+            tickets.addAll(filteredData)
+
+            val propertyIds = filteredData.mapNotNull { it.propertyId }.distinct()
+            propertyIds.forEach { propertyId ->
+                val property = propertyRepository.getPropertyById(propertyId)
+                if (property != null) {
+                    propertyMap[propertyId] = property
+                }
+            }
+
             loading = false
         }
     }
@@ -114,10 +134,11 @@ fun TicketListScreen(role: Role) {
                     items(tickets) { ticket ->
                         TicketCard(
                             ticket = ticket,
+                            property = ticket.propertyId?.let { propertyMap[it] },
                             role = role,
                             onChangeStatus = { nuevoEstado ->
                                 scope.launch {
-                                    repository.updateTicketStatus(ticket.ticketId, nuevoEstado)
+                                    ticketRepository.updateTicketStatus(ticket.ticketId, nuevoEstado)
                                     recargarTickets()
                                 }
                             }
@@ -132,12 +153,16 @@ fun TicketListScreen(role: Role) {
 @Composable
 fun TicketCard(
     ticket: Ticket,
+    property: Property?,
     role: Role,
     onChangeStatus: (String) -> Unit
 ) {
     val (estadoBg, estadoText) = getStatusColors(ticket.status)
     val (prioridadBg, prioridadText) = getPriorityColors(ticket.priority)
-    val puedeEditarEstado = role == Role.AGENCY
+
+    val puedeEditarEstadoAgencia = role == Role.AGENCY
+    val puedeCerrarMantenimiento =
+        role == Role.MAINTENANCE && ticket.status.equals("En proceso", ignoreCase = true)
 
     Card(
         modifier = Modifier
@@ -178,6 +203,16 @@ fun TicketCard(
                 )
             }
 
+            if (property != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Propiedad: ${formatPropertyLabel(property)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF616161)
+                )
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
@@ -207,7 +242,7 @@ fun TicketCard(
                 )
             }
 
-            if (puedeEditarEstado) {
+            if (puedeEditarEstadoAgencia) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
@@ -237,11 +272,22 @@ fun TicketCard(
                     }
 
                     Button(
-                        onClick = { onChangeStatus("Resuelta") },
+                        onClick = { onChangeStatus("Cerrado") },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Resuelta")
+                        Text("Cerrado")
                     }
+                }
+            }
+
+            if (puedeCerrarMantenimiento) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = { onChangeStatus("Cerrado") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Marcar como cerrado")
                 }
             }
         }
@@ -298,7 +344,7 @@ fun getStatusColors(estado: String): Pair<Color, Color> {
     return when (estado.uppercase()) {
         "ABIERTO", "ABIERTA" -> Pair(Color(0xFFFFF3E0), Color(0xFFEF6C00))
         "EN PROCESO", "PROCESO" -> Pair(Color(0xFFFFF8E1), Color(0xFFF9A825))
-        "RESUELTA" -> Pair(Color(0xFFE8F5E9), Color(0xFF2E7D32))
+        "CERRADO" -> Pair(Color(0xFFE8F5E9), Color(0xFF2E7D32))
         else -> Pair(Color.LightGray, Color.DarkGray)
     }
 }
@@ -316,3 +362,8 @@ fun formatDate(timestamp: Long): String {
     val formatter = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
     return formatter.format(Date(timestamp))
 }
+
+fun formatPropertyLabel(property: Property): String {
+    return "${property.address} - ${property.reference}"
+}
+

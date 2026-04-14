@@ -1,6 +1,8 @@
 package com.example.inmobiliacontrol.ui.ticket
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,12 +12,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -25,38 +32,69 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.inmobiliacontrol.Role
 import com.example.inmobiliacontrol.database.InmobiliaDatabase
+import com.example.inmobiliacontrol.entity.Property
+import com.example.inmobiliacontrol.repository.PropertyRepository
 import com.example.inmobiliacontrol.repository.TicketRepository
 import kotlinx.coroutines.launch
 
 @Composable
 fun CreateTicketScreen(
     role: Role,
+    userId: Int,
     onSubmit: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val repository = remember {
-        val db = InmobiliaDatabase.getInstance(context)
-        TicketRepository(db.ticketDao())
-    }
+    val db = remember { InmobiliaDatabase.getInstance(context) }
+    val ticketRepository = remember { TicketRepository(db.ticketDao()) }
+    val propertyRepository = remember { PropertyRepository(db.propertyDao()) }
+
+    val properties = remember { mutableStateListOf<Property>() }
+
+    val categoriasDisponibles = listOf(
+        "Fontanería",
+        "Electricidad",
+        "Carpintería",
+        "Pintura",
+        "Electrodomésticos",
+        "Humedades",
+        "General"
+    )
 
     var categoria by remember { mutableStateOf("") }
+    var categoriaExpanded by remember { mutableStateOf(false) }
+
     var titulo by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
     var prioridad by remember { mutableStateOf("Media") }
     var fechaDisponible by remember { mutableStateOf("") }
     var horaDisponible by remember { mutableStateOf("") }
+
+    var selectedPropertyId by remember { mutableStateOf<Int?>(null) }
+    var selectedPropertyLabel by remember { mutableStateOf("") }
+    var propertyExpanded by remember { mutableStateOf(false) }
+
     var loading by remember { mutableStateOf(false) }
+    var loadingProperties by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
 
     val puedeElegirPrioridad = role == Role.AGENCY
-    val puedeCrearIncidencia = role == Role.TENANT || role == Role.AGENCY
 
-    val tituloPantalla = when (role) {
-        Role.TENANT -> "Crear incidencia"
-        Role.AGENCY -> "Crear incidencia"
-        Role.MAINTENANCE -> "Gestión de incidencia"
+    LaunchedEffect(Unit) {
+        try {
+            val result = propertyRepository.getAllProperties()
+            properties.clear()
+            properties.addAll(result)
+
+            if (properties.isNotEmpty()) {
+                val first = properties.first()
+                selectedPropertyId = first.propertyId
+                selectedPropertyLabel = formatSelectedPropertyLabel(first)
+            }
+        } finally {
+            loadingProperties = false
+        }
     }
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -68,54 +106,144 @@ fun CreateTicketScreen(
             verticalArrangement = Arrangement.Top
         ) {
             Text(
-                text = tituloPantalla,
+                text = "Crear incidencia",
                 style = MaterialTheme.typography.headlineSmall
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            when (role) {
-                Role.TENANT -> {
-                    Text(
-                        text = "Como inquilino puedes registrar una nueva incidencia. La prioridad se asignará automáticamente.",
-                        style = MaterialTheme.typography.bodyMedium
+            Text(
+                text = if (role == Role.AGENCY) {
+                    "Registra una incidencia y define su prioridad inicial."
+                } else {
+                    "Registra una incidencia asociada a una vivienda."
+                },
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "Propiedad",
+                style = MaterialTheme.typography.labelLarge
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            if (loadingProperties) {
+                Text("Cargando propiedades...")
+            } else {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = selectedPropertyLabel,
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Selecciona una propiedad") },
+                        trailingIcon = { Text("▼") }
                     )
-                }
-                Role.AGENCY -> {
-                    Text(
-                        text = "Como agencia puedes registrar incidencias y definir su prioridad inicial.",
-                        style = MaterialTheme.typography.bodyMedium
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .clickable { propertyExpanded = true }
                     )
+
+                    DropdownMenu(
+                        expanded = propertyExpanded,
+                        onDismissRequest = { propertyExpanded = false }
+                    ) {
+                        properties.forEach { property ->
+                            DropdownMenuItem(
+                                text = { Text(formatSelectedPropertyLabel(property)) },
+                                onClick = {
+                                    selectedPropertyId = property.propertyId
+                                    selectedPropertyLabel = formatSelectedPropertyLabel(property)
+                                    propertyExpanded = false
+                                }
+                            )
+                        }
+                    }
                 }
-                Role.MAINTENANCE -> {
+
+                if (properties.isEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "El perfil de mantenimiento no crea incidencias nuevas.",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "No hay propiedades disponibles",
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = categoria,
-                onValueChange = { categoria = it },
-                label = { Text("Categoría") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                placeholder = { Text("Ej: Fontanería") },
-                enabled = !loading && puedeCrearIncidencia
+            Text(
+                text = "Categoría",
+                style = MaterialTheme.typography.labelLarge
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = categoria,
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Selecciona una categoría") },
+                        trailingIcon = { Text("▼") }
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .clickable { categoriaExpanded = true }
+                    )
+
+                    DropdownMenu(
+                        expanded = categoriaExpanded,
+                        onDismissRequest = { categoriaExpanded = false }
+                    ) {
+                        categoriasDisponibles.forEach { opcion ->
+                            DropdownMenuItem(
+                                text = { Text(opcion) },
+                                onClick = {
+                                    categoria = opcion
+                                    categoriaExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+
+                DropdownMenu(
+                    expanded = categoriaExpanded,
+                    onDismissRequest = { categoriaExpanded = false }
+                ) {
+                    categoriasDisponibles.forEach { opcion ->
+                        DropdownMenuItem(
+                            text = { Text(opcion) },
+                            onClick = {
+                                categoria = opcion
+                                categoriaExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = titulo,
                 onValueChange = { titulo = it },
-                label = { Text("Título de la incidencia") },
+                label = { Text("Título") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                enabled = !loading && puedeCrearIncidencia
+                placeholder = { Text("Ej: Fuga en baño") }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -126,7 +254,7 @@ fun CreateTicketScreen(
                 label = { Text("Descripción") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 4,
-                enabled = !loading && puedeCrearIncidencia
+                placeholder = { Text("Describe el problema con el mayor detalle posible") }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -137,9 +265,7 @@ fun CreateTicketScreen(
                     onValueChange = { prioridad = it },
                     label = { Text("Prioridad") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    placeholder = { Text("Ej: Alta") },
-                    enabled = !loading
+                    placeholder = { Text("Ej: Alta") }
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -150,9 +276,7 @@ fun CreateTicketScreen(
                 onValueChange = { fechaDisponible = it },
                 label = { Text("Fecha disponible") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                placeholder = { Text("Ej: 02/04/2026") },
-                enabled = !loading && puedeCrearIncidencia
+                placeholder = { Text("Ej: 20/04/2026") }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -162,84 +286,62 @@ fun CreateTicketScreen(
                 onValueChange = { horaDisponible = it },
                 label = { Text("Hora disponible") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                placeholder = { Text("Ej: 10:30") },
-                enabled = !loading && puedeCrearIncidencia
+                placeholder = { Text("Ej: 10:30") }
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Button(
-                onClick = { },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !loading && puedeCrearIncidencia
-            ) {
-                Text("Añadir foto")
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (fechaDisponible.isNotBlank() || horaDisponible.isNotBlank()) {
-                Text(
-                    text = "Disponibilidad indicada: $fechaDisponible $horaDisponible",
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            error?.let {
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             Button(
                 onClick = {
-                    if (!puedeCrearIncidencia) {
-                        error = "Este perfil no puede crear incidencias"
+                    if (selectedPropertyId == null) {
+                        error = "Selecciona una propiedad"
                         return@Button
                     }
 
                     if (categoria.isBlank() || titulo.isBlank() || descripcion.isBlank()) {
-                        error = "Categoría, título y descripción son obligatorios"
+                        error = "Rellena todos los campos obligatorios"
                         return@Button
                     }
 
-                    val prioridadFinal = when (role) {
-                        Role.TENANT -> "Media"
-                        Role.AGENCY -> if (prioridad.isBlank()) "Media" else prioridad
-                        Role.MAINTENANCE -> "Media"
-                    }
+                    val prioridadFinal = if (role == Role.TENANT) "Media" else prioridad
 
                     loading = true
                     error = null
 
                     scope.launch {
                         try {
-                            repository.createTicket(
+                            ticketRepository.createTicket(
                                 title = titulo,
                                 description = descripcion,
                                 category = categoria,
                                 priority = prioridadFinal,
-                                createdByUserId = 1
+                                createdByUserId = userId,
+                                propertyId = selectedPropertyId
                             )
+
                             loading = false
                             onSubmit()
                         } catch (e: Exception) {
                             loading = false
-                            error = "Error al guardar la incidencia"
+                            error = "Error al guardar"
                         }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !loading
             ) {
-                Text(if (loading) "Guardando..." else "Enviar incidencia")
+                Text(if (loading) "Guardando..." else "Crear incidencia")
             }
         }
     }
 }
+
+private fun formatSelectedPropertyLabel(property: Property): String {
+    return "${property.address} - ${property.reference}"
+}
+

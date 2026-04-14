@@ -19,7 +19,7 @@ import com.example.inmobiliacontrol.Role
 
 @Composable
 fun LoginScreen(
-    onLoggedIn: (Role) -> Unit,
+    onLoggedIn: (Role, Int) -> Unit,
     vm: LoginViewModel = viewModel()
 ) {
     val state by vm.uiState.collectAsState()
@@ -63,7 +63,7 @@ fun LoginScreen(
 
             OutlinedTextField(
                 value = state.email,
-                onValueChange = { vm.setEmail(sanitizeUserInput(it)) },
+                onValueChange = { vm.setEmail(it) },
                 label = { Text("Email / Usuario") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -75,7 +75,7 @@ fun LoginScreen(
 
             OutlinedTextField(
                 value = state.password,
-                onValueChange = { vm.setPassword(sanitizePasswordInput(it)) },
+                onValueChange = { vm.setPassword(it) },
                 label = { Text("Contraseña") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -167,12 +167,3 @@ private fun RoleDropdown(
     }
 }
 
-private fun sanitizeUserInput(input: String): String {
-    val disallowed = Regex("[^a-zA-Z0-9@._\\-\\s]")
-    return input.replace(disallowed, "")
-}
-
-private fun sanitizePasswordInput(input: String): String {
-    val disallowed = Regex("[^a-zA-Z0-9._\\-]")
-    return input.replace(disallowed, "")
-}

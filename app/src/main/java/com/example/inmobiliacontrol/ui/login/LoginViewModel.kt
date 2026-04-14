@@ -8,11 +8,11 @@ import com.example.inmobiliacontrol.repository.UserRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class LoginUiState(
     val role: Role = Role.TENANT,
@@ -46,13 +46,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(password = password, error = null) }
     }
 
-    /**
-     * Login con Room:
-     * 1) valida campos
-     * 2) intenta login(email,password)
-     * 3) si no existe, registra y deja pasar (demo)
-     */
-    fun login(onSuccess: (Role) -> Unit) {
+    fun login(onSuccess: (Role, Int) -> Unit) {
         val state = _uiState.value
         val email = state.email.trim()
         val password = state.password
@@ -72,20 +66,25 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
         scope.launch {
             try {
-                val exists = withContext(Dispatchers.IO) {
-                    repo.login(email, password) != null
+                val userId = withContext(Dispatchers.IO) {
+                    val existingUser = repo.login(email, password)
+                    if (existingUser != null) {
+                        existingUser.id
+                    } else {
+                        repo.register(email, password).toInt()
+                    }
                 }
 
-                if (exists) {
+                if (userId > 0) {
                     _uiState.update { it.copy(loading = false, error = null) }
-                    onSuccess(role)
+                    onSuccess(role, userId)
                 } else {
-                    // demo: si no existe, lo registramos y dejamos pasar
-                    withContext(Dispatchers.IO) {
-                        repo.register(email, password)
+                    _uiState.update {
+                        it.copy(
+                            loading = false,
+                            error = "No se pudo recuperar el usuario"
+                        )
                     }
-                    _uiState.update { it.copy(loading = false, error = null) }
-                    onSuccess(role)
                 }
             } catch (e: Exception) {
                 _uiState.update {
@@ -100,7 +99,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         super.onCleared()
-        // SupervisorJob se cancela automáticamente al perder referencias,
-        // pero lo dejamos explícito si lo prefieres (opcional).
     }
 }
+
