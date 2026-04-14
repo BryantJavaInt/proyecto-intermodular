@@ -1,5 +1,7 @@
 package com.example.inmobiliacontrol.ui.ticket
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,7 +17,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,6 +37,8 @@ import com.example.inmobiliacontrol.entity.Property
 import com.example.inmobiliacontrol.repository.PropertyRepository
 import com.example.inmobiliacontrol.repository.TicketRepository
 import kotlinx.coroutines.launch
+import java.util.Calendar
+import java.util.Locale
 
 @Composable
 fun CreateTicketScreen(
@@ -80,6 +83,43 @@ fun CreateTicketScreen(
     var error by remember { mutableStateOf<String?>(null) }
 
     val puedeElegirPrioridad = role == Role.AGENCY
+
+    val calendar = remember { Calendar.getInstance() }
+
+    val datePickerDialog = remember {
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                fechaDisponible = String.format(
+                    Locale.getDefault(),
+                    "%02d/%02d/%04d",
+                    dayOfMonth,
+                    month + 1,
+                    year
+                )
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        )
+    }
+
+    val timePickerDialog = remember {
+        TimePickerDialog(
+            context,
+            { _, hourOfDay, minute ->
+                horaDisponible = String.format(
+                    Locale.getDefault(),
+                    "%02d:%02d",
+                    hourOfDay,
+                    minute
+                )
+            },
+            calendar.get(Calendar.HOUR_OF_DAY),
+            calendar.get(Calendar.MINUTE),
+            true
+        )
+    }
 
     LaunchedEffect(Unit) {
         try {
@@ -186,39 +226,21 @@ fun CreateTicketScreen(
             Spacer(modifier = Modifier.height(6.dp))
 
             Box(modifier = Modifier.fillMaxWidth()) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = categoria,
-                        onValueChange = {},
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Selecciona una categoría") },
-                        trailingIcon = { Text("▼") }
-                    )
+                OutlinedTextField(
+                    value = categoria,
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Selecciona una categoría") },
+                    trailingIcon = { Text("▼") }
+                )
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .clickable { categoriaExpanded = true }
-                    )
-
-                    DropdownMenu(
-                        expanded = categoriaExpanded,
-                        onDismissRequest = { categoriaExpanded = false }
-                    ) {
-                        categoriasDisponibles.forEach { opcion ->
-                            DropdownMenuItem(
-                                text = { Text(opcion) },
-                                onClick = {
-                                    categoria = opcion
-                                    categoriaExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .clickable { categoriaExpanded = true }
+                )
 
                 DropdownMenu(
                     expanded = categoriaExpanded,
@@ -271,23 +293,57 @@ fun CreateTicketScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            OutlinedTextField(
-                value = fechaDisponible,
-                onValueChange = { fechaDisponible = it },
-                label = { Text("Fecha disponible") },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Ej: 20/04/2026") }
+            Text(
+                text = "Fecha disponible",
+                style = MaterialTheme.typography.labelLarge
             )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = fechaDisponible,
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Selecciona una fecha") },
+                    trailingIcon = { Text("📅") }
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .clickable { datePickerDialog.show() }
+                )
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            OutlinedTextField(
-                value = horaDisponible,
-                onValueChange = { horaDisponible = it },
-                label = { Text("Hora disponible") },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Ej: 10:30") }
+            Text(
+                text = "Hora disponible",
+                style = MaterialTheme.typography.labelLarge
             )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = horaDisponible,
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Selecciona una hora") },
+                    trailingIcon = { Text("🕒") }
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .clickable { timePickerDialog.show() }
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -344,4 +400,6 @@ fun CreateTicketScreen(
 private fun formatSelectedPropertyLabel(property: Property): String {
     return "${property.address} - ${property.reference}"
 }
+
+
 

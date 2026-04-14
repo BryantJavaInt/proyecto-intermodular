@@ -14,6 +14,7 @@ import com.example.inmobiliacontrol.entity.Property
 import com.example.inmobiliacontrol.ui.home.HomeScreen
 import com.example.inmobiliacontrol.ui.login.LoginScreen
 import com.example.inmobiliacontrol.ui.ticket.CreateTicketScreen
+import com.example.inmobiliacontrol.ui.ticket.TicketDetailScreen
 import com.example.inmobiliacontrol.ui.ticket.TicketListScreen
 import kotlinx.coroutines.launch
 
@@ -49,7 +50,6 @@ class MainActivity : ComponentActivity() {
                         navArgument("userId") { type = NavType.IntType }
                     )
                 ) { backStackEntry ->
-
                     val roleStr = backStackEntry.arguments?.getString("role") ?: Role.TENANT.name
                     val role = Role.valueOf(roleStr)
                     val userId = backStackEntry.arguments?.getInt("userId") ?: 1
@@ -81,7 +81,13 @@ class MainActivity : ComponentActivity() {
                     val role = Role.valueOf(roleStr)
                     val userId = backStackEntry.arguments?.getInt("userId") ?: 1
 
-                    TicketListScreen(role = role, userId = userId)
+                    TicketListScreen(
+                        role = role,
+                        userId = userId,
+                        onOpenDetail = { ticketId ->
+                            navController.navigate("ticket_detail/${role.name}/$userId/$ticketId")
+                        }
+                    )
                 }
 
                 composable(
@@ -103,6 +109,27 @@ class MainActivity : ComponentActivity() {
                                 popUpTo("create_ticket/${role.name}/$userId") { inclusive = true }
                             }
                         }
+                    )
+                }
+
+                composable(
+                    route = "ticket_detail/{role}/{userId}/{ticketId}",
+                    arguments = listOf(
+                        navArgument("role") { type = NavType.StringType },
+                        navArgument("userId") { type = NavType.IntType },
+                        navArgument("ticketId") { type = NavType.IntType }
+                    )
+                ) { backStackEntry ->
+                    val roleStr = backStackEntry.arguments?.getString("role") ?: Role.TENANT.name
+                    val role = Role.valueOf(roleStr)
+                    val userId = backStackEntry.arguments?.getInt("userId") ?: 1
+                    val ticketId = backStackEntry.arguments?.getInt("ticketId") ?: 0
+
+                    TicketDetailScreen(
+                        role = role,
+                        userId = userId,
+                        ticketId = ticketId,
+                        onBack = { navController.popBackStack() }
                     )
                 }
             }
@@ -138,3 +165,5 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+

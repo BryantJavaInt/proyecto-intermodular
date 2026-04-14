@@ -1,6 +1,7 @@
 package com.example.inmobiliacontrol.ui.ticket
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,8 +31,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.inmobiliacontrol.Role
 import com.example.inmobiliacontrol.database.InmobiliaDatabase
@@ -45,7 +46,11 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun TicketListScreen(role: Role, userId: Int) {
+fun TicketListScreen(
+    role: Role,
+    userId: Int,
+    onOpenDetail: (Int) -> Unit
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -131,11 +136,16 @@ fun TicketListScreen(role: Role, userId: Int) {
                         .padding(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    item {
+                        TicketListHeader(role = role, total = tickets.size)
+                    }
+
                     items(tickets) { ticket ->
                         TicketCard(
                             ticket = ticket,
                             property = ticket.propertyId?.let { propertyMap[it] },
                             role = role,
+                            onOpenDetail = { onOpenDetail(ticket.ticketId) },
                             onChangeStatus = { nuevoEstado ->
                                 scope.launch {
                                     ticketRepository.updateTicketStatus(ticket.ticketId, nuevoEstado)
@@ -151,10 +161,54 @@ fun TicketListScreen(role: Role, userId: Int) {
 }
 
 @Composable
+fun TicketListHeader(role: Role, total: Int) {
+    val title = when (role) {
+        Role.TENANT -> "Mis incidencias"
+        Role.AGENCY -> "Gestión de incidencias"
+        Role.MAINTENANCE -> "Incidencias asignadas"
+    }
+
+    val subtitle = when (role) {
+        Role.TENANT -> "Aquí puedes consultar el estado de las incidencias creadas."
+        Role.AGENCY -> "Aquí puedes revisar todas las incidencias y gestionar sus estados."
+        Role.MAINTENANCE -> "Aquí puedes consultar las incidencias en proceso o cerradas."
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFF616161)
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Text(
+            text = "Total: $total",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color(0xFF757575)
+        )
+    }
+}
+
+@Composable
 fun TicketCard(
     ticket: Ticket,
     property: Property?,
     role: Role,
+    onOpenDetail: () -> Unit,
     onChangeStatus: (String) -> Unit
 ) {
     val (estadoBg, estadoText) = getStatusColors(ticket.status)
@@ -167,7 +221,8 @@ fun TicketCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            .clickable { onOpenDetail() },
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -176,15 +231,36 @@ fun TicketCard(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            Text(
-                text = ticket.title,
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1A1A1A)
-            )
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = categoryIcon(ticket.category),
+                    style = MaterialTheme.typography.headlineSmall
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.padding(4.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = ticket.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1A1A1A)
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Fecha: ${formatDate(ticket.createdAt)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF9E9E9E)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -212,14 +288,6 @@ fun TicketCard(
                     color = Color(0xFF616161)
                 )
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Fecha: ${formatDate(ticket.createdAt)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF9E9E9E)
-            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -365,5 +433,17 @@ fun formatDate(timestamp: Long): String {
 
 fun formatPropertyLabel(property: Property): String {
     return "${property.address} - ${property.reference}"
+}
+
+fun categoryIcon(category: String): String {
+    return when (category.lowercase(Locale.getDefault())) {
+        "fontanería" -> "🚿"
+        "electricidad" -> "💡"
+        "carpintería" -> "🪵"
+        "pintura" -> "🖌️"
+        "electrodomésticos" -> "🧺"
+        "humedades" -> "💧"
+        else -> "🏠"
+    }
 }
 
