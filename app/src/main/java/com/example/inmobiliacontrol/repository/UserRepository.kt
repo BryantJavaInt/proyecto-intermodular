@@ -2,7 +2,7 @@ package com.example.inmobiliacontrol.repository
 
 import com.example.inmobiliacontrol.dao.UserDao
 import com.example.inmobiliacontrol.entity.User
-
+//
 class UserRepository(private val userDao: UserDao) {
 
     suspend fun register(email: String, password: String, role: String): Long {
