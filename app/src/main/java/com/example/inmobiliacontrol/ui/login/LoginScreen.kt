@@ -23,89 +23,104 @@ fun LoginScreen(
     vm: LoginViewModel = viewModel()
 ) {
     val state by vm.uiState.collectAsState()
-    val softBlue = Color(0xFFEAF3FF)
+
+    val background = Color(0xFFF4F7FB)
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = softBlue
+        color = background
     ) {
         Column(
             modifier = Modifier
-                .padding(horizontal = 24.dp, vertical = 18.dp)
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Spacer(Modifier.height(10.dp))
 
-            Box(
-                contentAlignment = Alignment.Center,
+// LOGO
+            Image(
+                painter = painterResource(id = R.drawable.logo_inmobiliacontrol),
+                contentDescription = "Logo",
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp, bottom = 12.dp)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo_inmobiliacontrol),
-                    contentDescription = "Logo",
-                    modifier = Modifier
-                        .fillMaxWidth(0.75f)
-                        .height(200.dp)
-                )
-            }
+                    .fillMaxWidth(0.7f)
+                    .height(160.dp)
+            )
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+// TÍTULO
+            Text(
+                text = "InmobiliaControl",
+                style = MaterialTheme.typography.headlineSmall,
+                color = Color(0xFF1A1A1A)
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = "Gestión de incidencias",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF757575)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+// ROLE
             RoleDropdown(
                 selectedRole = state.role,
                 onRoleSelected = vm::setRole
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
+// EMAIL
             OutlinedTextField(
                 value = state.email,
-                onValueChange = { vm.setEmail(it) },
-                label = { Text("Email / Usuario") },
-                singleLine = true,
+                onValueChange = vm::setEmail,
+                label = { Text("Email") },
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                enabled = !state.loading
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
+// PASSWORD
             OutlinedTextField(
                 value = state.password,
-                onValueChange = { vm.setPassword(it) },
+                onValueChange = vm::setPassword,
                 label = { Text("Contraseña") },
-                singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                enabled = !state.loading
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation()
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            state.error?.let { msg ->
-                Text(msg, color = MaterialTheme.colorScheme.error)
-                Spacer(Modifier.height(8.dp))
+            state.error?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
+// BOTÓN
             Button(
                 onClick = { vm.login(onSuccess = onLoggedIn) },
-                enabled = !state.loading,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(50.dp)
             ) {
-                Text(if (state.loading) "Cargando..." else "Entrar")
+                Text(if (state.loading) "Entrando..." else "Entrar")
             }
         }
     }
 }
 
 @Composable
-private fun RoleDropdown(
+fun RoleDropdown(
     selectedRole: Role,
     onRoleSelected: (Role) -> Unit
 ) {
@@ -117,53 +132,36 @@ private fun RoleDropdown(
         Role.MAINTENANCE -> "Mantenimiento"
     }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text("Tipo de usuario", style = MaterialTheme.typography.labelLarge)
-        Spacer(Modifier.height(6.dp))
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = label,
+            onValueChange = {},
+            readOnly = true,
+            modifier = Modifier.fillMaxWidth(),
+            trailingIcon = { Text("▼") }
+        )
 
-        Box(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
-                value = label,
-                onValueChange = {},
-                readOnly = true,
-                singleLine = true,
-                trailingIcon = { Text("▼") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clickable { expanded = true }
-            )
-        }
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable { expanded = true }
+        )
 
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            DropdownMenuItem(
-                text = { Text("Inquilino") },
-                onClick = {
-                    onRoleSelected(Role.TENANT)
-                    expanded = false
-                }
-            )
-            DropdownMenuItem(
-                text = { Text("Agencia") },
-                onClick = {
-                    onRoleSelected(Role.AGENCY)
-                    expanded = false
-                }
-            )
-            DropdownMenuItem(
-                text = { Text("Mantenimiento") },
-                onClick = {
-                    onRoleSelected(Role.MAINTENANCE)
-                    expanded = false
-                }
-            )
+            Role.values().forEach { role ->
+                DropdownMenuItem(
+                    text = { Text(role.name) },
+                    onClick = {
+                        onRoleSelected(role)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }
+
 
