@@ -71,7 +71,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     if (existingUser != null) {
                         existingUser.id
                     } else {
-                        repo.register(email, password).toInt()
+                        repo.register(email, password, role.name).toInt()
                     }
                 }
 
@@ -101,4 +101,3 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         super.onCleared()
     }
 }
-
