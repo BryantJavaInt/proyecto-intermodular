@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -22,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -34,10 +37,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.inmobiliacontrol.Role
 import com.example.inmobiliacontrol.database.InmobiliaDatabase
 import com.example.inmobiliacontrol.entity.Property
 import com.example.inmobiliacontrol.entity.Ticket
+import com.example.inmobiliacontrol.repository.CommentRepository
 import com.example.inmobiliacontrol.repository.PropertyRepository
 import com.example.inmobiliacontrol.repository.TicketRepository
 import kotlinx.coroutines.launch
@@ -57,10 +62,11 @@ fun TicketListScreen(
     val db = remember { InmobiliaDatabase.getInstance(context) }
     val ticketRepository = remember { TicketRepository(db.ticketDao()) }
     val propertyRepository = remember { PropertyRepository(db.propertyDao()) }
+    val commentRepository = remember { CommentRepository(db.commentDao()) }
 
     val tickets = remember { mutableStateListOf<Ticket>() }
     val propertyMap = remember { mutableStateMapOf<Int, Property>() }
-
+    val commentCountMap = remember { mutableStateMapOf<Int, Int>() }
     var loading by remember { mutableStateOf(true) }
 
     fun recargarTickets() {
@@ -68,6 +74,7 @@ fun TicketListScreen(
             loading = true
             tickets.clear()
             propertyMap.clear()
+            commentCountMap.clear()
 
             val allData = when (role) {
                 Role.TENANT -> ticketRepository.getTicketsByUser(userId)
@@ -85,41 +92,36 @@ fun TicketListScreen(
 
             tickets.addAll(filteredData)
 
-            val propertyIds = filteredData.mapNotNull { it.propertyId }.distinct()
-            propertyIds.forEach { propertyId ->
-                val property = propertyRepository.getPropertyById(propertyId)
-                if (property != null) {
+            // Cargar propiedades
+            filteredData.mapNotNull { it.propertyId }.distinct().forEach { propertyId ->
+                propertyRepository.getPropertyById(propertyId)?.let { property ->
                     propertyMap[propertyId] = property
                 }
+            }
+
+            // Cargar conteo de comentarios por ticket
+            filteredData.forEach { ticket ->
+                val count = commentRepository.getCommentsByTicket(ticket.ticketId).size
+                commentCountMap[ticket.ticketId] = count
             }
 
             loading = false
         }
     }
 
-    LaunchedEffect(Unit) {
-        recargarTickets()
-    }
+    LaunchedEffect(Unit) { recargarTickets() }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Color(0xFFF5F5F5)
-    ) {
+    Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFFF5F5F5)) {
         when {
             loading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Cargando incidencias...")
                 }
             }
 
             tickets.isEmpty() -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -131,20 +133,19 @@ fun TicketListScreen(
 
             else -> {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(vertical = 8.dp),
+                    modifier = Modifier.fillMaxSize().padding(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     item {
                         TicketListHeader(role = role, total = tickets.size)
                     }
 
-                    items(tickets) { ticket ->
+                    items(tickets, key = { it.ticketId }) { ticket ->
                         TicketCard(
                             ticket = ticket,
                             property = ticket.propertyId?.let { propertyMap[it] },
                             role = role,
+                            commentCount = commentCountMap[ticket.ticketId] ?: 0,
                             onOpenDetail = { onOpenDetail(ticket.ticketId) },
                             onChangeStatus = { nuevoEstado ->
                                 scope.launch {
@@ -167,11 +168,10 @@ fun TicketListHeader(role: Role, total: Int) {
         Role.AGENCY -> "Gestión de incidencias"
         Role.MAINTENANCE -> "Incidencias asignadas"
     }
-
     val subtitle = when (role) {
-        Role.TENANT -> "Aquí puedes consultar el estado de las incidencias creadas."
-        Role.AGENCY -> "Aquí puedes revisar todas las incidencias y gestionar sus estados."
-        Role.MAINTENANCE -> "Aquí puedes consultar las incidencias en proceso o cerradas."
+        Role.TENANT -> "Consulta el estado y habla con la agencia desde cada incidencia."
+        Role.AGENCY -> "Revisa todas las incidencias y gestiona sus estados."
+        Role.MAINTENANCE -> "Incidencias en proceso o cerradas."
     }
 
     Column(
@@ -179,27 +179,11 @@ fun TicketListHeader(role: Role, total: Int) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-
+        Text(text = title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF616161)
-        )
-
+        Text(text = subtitle, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF616161))
         Spacer(modifier = Modifier.height(6.dp))
-
-        Text(
-            text = "Total: $total",
-            style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFF757575)
-        )
+        Text(text = "Total: $total", style = MaterialTheme.typography.bodySmall, color = Color(0xFF757575))
     }
 }
 
@@ -208,6 +192,7 @@ fun TicketCard(
     ticket: Ticket,
     property: Property?,
     role: Role,
+    commentCount: Int,
     onOpenDetail: () -> Unit,
     onChangeStatus: (String) -> Unit
 ) {
@@ -226,11 +211,9 @@ fun TicketCard(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+
+            // Fila superior: icono + título + badge comentarios
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Top
@@ -239,9 +222,7 @@ fun TicketCard(
                     text = categoryIcon(ticket.category),
                     style = MaterialTheme.typography.headlineSmall
                 )
-
                 Spacer(modifier = Modifier.padding(4.dp))
-
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = ticket.title,
@@ -249,14 +230,40 @@ fun TicketCard(
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1A1A1A)
                     )
-
                     Spacer(modifier = Modifier.height(4.dp))
-
                     Text(
                         text = "Fecha: ${formatDate(ticket.createdAt)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF9E9E9E)
                     )
+                }
+
+                // Badge con número de comentarios
+                Box(contentAlignment = Alignment.TopEnd) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(
+                                    color = if (commentCount > 0) Color(0xFF1565C0) else Color(0xFFE0E0E0),
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (commentCount > 9) "9+" else commentCount.toString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (commentCount > 0) Color.White else Color(0xFF9E9E9E),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        }
+                        Text(
+                            text = "💬",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp
+                        )
+                    }
                 }
             }
 
@@ -271,7 +278,6 @@ fun TicketCard(
                     backgroundColor = Color(0xFFE3F2FD),
                     textColor = Color(0xFF1565C0)
                 )
-
                 InfoChip(
                     text = ticket.priority,
                     backgroundColor = prioridadBg,
@@ -281,9 +287,8 @@ fun TicketCard(
 
             if (property != null) {
                 Spacer(modifier = Modifier.height(8.dp))
-
                 Text(
-                    text = "Propiedad: ${formatPropertyLabel(property)}",
+                    text = "📍 ${formatPropertyLabel(property)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color(0xFF616161)
                 )
@@ -294,86 +299,62 @@ fun TicketCard(
             Text(
                 text = ticket.description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF616161)
+                color = Color(0xFF616161),
+                maxLines = 2
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 StatusChip(
                     text = ticket.status.uppercase(),
                     backgroundColor = estadoBg,
                     textColor = estadoText
                 )
+                Text(
+                    text = "Ver chat →",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF1565C0),
+                    fontWeight = FontWeight.SemiBold
+                )
             }
 
             if (puedeEditarEstadoAgencia) {
                 Spacer(modifier = Modifier.height(16.dp))
-
                 Text(
                     text = "Cambiar estado",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold
                 )
-
                 Spacer(modifier = Modifier.height(8.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Button(
-                        onClick = { onChangeStatus("Abierto") },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Abierto")
-                    }
-
-                    Button(
-                        onClick = { onChangeStatus("En proceso") },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Proceso")
-                    }
-
-                    Button(
-                        onClick = { onChangeStatus("Cerrado") },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Cerrado")
-                    }
+                    Button(onClick = { onChangeStatus("Abierto") }, modifier = Modifier.weight(1f)) { Text("Abierto") }
+                    Button(onClick = { onChangeStatus("En proceso") }, modifier = Modifier.weight(1f)) { Text("Proceso") }
+                    Button(onClick = { onChangeStatus("Cerrado") }, modifier = Modifier.weight(1f)) { Text("Cerrado") }
                 }
             }
 
             if (puedeCerrarMantenimiento) {
                 Spacer(modifier = Modifier.height(16.dp))
-
                 Button(
                     onClick = { onChangeStatus("Cerrado") },
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Marcar como cerrado")
-                }
+                ) { Text("Marcar como cerrado") }
             }
         }
     }
 }
 
+// ── CHIPS ──────────────────────────────────────────────────────────────────────
+
 @Composable
-fun StatusChip(
-    text: String,
-    backgroundColor: Color,
-    textColor: Color
-) {
+fun StatusChip(text: String, backgroundColor: Color, textColor: Color) {
     Box(
         modifier = Modifier
-            .background(
-                color = backgroundColor,
-                shape = MaterialTheme.shapes.small
-            )
+            .background(color = backgroundColor, shape = MaterialTheme.shapes.small)
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Text(
@@ -386,17 +367,10 @@ fun StatusChip(
 }
 
 @Composable
-fun InfoChip(
-    text: String,
-    backgroundColor: Color,
-    textColor: Color
-) {
+fun InfoChip(text: String, backgroundColor: Color, textColor: Color) {
     Box(
         modifier = Modifier
-            .background(
-                color = backgroundColor,
-                shape = MaterialTheme.shapes.small
-            )
+            .background(color = backgroundColor, shape = MaterialTheme.shapes.small)
             .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
         Text(
@@ -407,6 +381,8 @@ fun InfoChip(
         )
     }
 }
+
+// ── UTILIDADES ─────────────────────────────────────────────────────────────────
 
 fun getStatusColors(estado: String): Pair<Color, Color> {
     return when (estado.uppercase()) {
@@ -432,7 +408,8 @@ fun formatDate(timestamp: Long): String {
 }
 
 fun formatPropertyLabel(property: Property): String {
-    return "${property.address} - ${property.reference}"
+    return if (property.reference.isBlank()) property.address
+    else "${property.address} - ${property.reference}"
 }
 
 fun categoryIcon(category: String): String {
@@ -446,4 +423,3 @@ fun categoryIcon(category: String): String {
         else -> "🏠"
     }
 }
-

@@ -10,8 +10,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.inmobiliacontrol.R
@@ -20,15 +22,14 @@ import com.example.inmobiliacontrol.Role
 @Composable
 fun LoginScreen(
     onLoggedIn: (Role, Int) -> Unit,
+    onNavigateToRegister: () -> Unit,
     vm: LoginViewModel = viewModel()
 ) {
     val state by vm.uiState.collectAsState()
 
-    val background = Color(0xFFF4F7FB)
-
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = background
+        color = Color(0xFFF4F7FB)
     ) {
         Column(
             modifier = Modifier
@@ -38,7 +39,6 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center
         ) {
 
-// LOGO
             Image(
                 painter = painterResource(id = R.drawable.logo_inmobiliacontrol),
                 contentDescription = "Logo",
@@ -49,7 +49,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-// TÍTULO
             Text(
                 text = "InmobiliaControl",
                 style = MaterialTheme.typography.headlineSmall,
@@ -64,17 +63,8 @@ fun LoginScreen(
                 color = Color(0xFF757575)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-// ROLE
-            RoleDropdown(
-                selectedRole = state.role,
-                onRoleSelected = vm::setRole
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-// EMAIL
             OutlinedTextField(
                 value = state.email,
                 onValueChange = vm::setEmail,
@@ -86,7 +76,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-// PASSWORD
             OutlinedTextField(
                 value = state.password,
                 onValueChange = vm::setPassword,
@@ -99,21 +88,45 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             state.error?.let {
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.error
-                )
+                Text(text = it, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-// BOTÓN
             Button(
                 onClick = { vm.login(onSuccess = onLoggedIn) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                enabled = !state.loading
             ) {
-                Text(if (state.loading) "Entrando..." else "Entrar")
+                Text(
+                    text = if (state.loading) "Entrando..." else "Iniciar sesión",
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            HorizontalDivider(color = Color(0xFFE0E0E0))
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "¿No tienes cuenta?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF757575)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            OutlinedButton(
+                onClick = onNavigateToRegister,
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1565C0)),
+                border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF1565C0))
+            ) {
+                Text(
+                    text = "Crear cuenta nueva",
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     }
@@ -137,23 +150,23 @@ fun RoleDropdown(
             value = label,
             onValueChange = {},
             readOnly = true,
+            label = { Text("Rol (cuenta nueva)") },
             modifier = Modifier.fillMaxWidth(),
             trailingIcon = { Text("▼") }
         )
-
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clickable { expanded = true }
-        )
-
+        Box(modifier = Modifier.matchParentSize().clickable { expanded = true })
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            Role.values().forEach { role ->
+            Role.entries.forEach { role ->
+                val roleLabel = when (role) {
+                    Role.TENANT -> "Inquilino"
+                    Role.AGENCY -> "Agencia"
+                    Role.MAINTENANCE -> "Mantenimiento"
+                }
                 DropdownMenuItem(
-                    text = { Text(role.name) },
+                    text = { Text(roleLabel) },
                     onClick = {
                         onRoleSelected(role)
                         expanded = false
@@ -163,5 +176,3 @@ fun RoleDropdown(
         }
     }
 }
-
-

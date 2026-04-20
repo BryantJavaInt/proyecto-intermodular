@@ -15,7 +15,7 @@ import com.example.inmobiliacontrol.entity.User
 
 @Database(
     entities = [User::class, Property::class, Ticket::class, Comment::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class InmobiliaDatabase : RoomDatabase() {

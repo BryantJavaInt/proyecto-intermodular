@@ -14,5 +14,17 @@ data class User(
     val email: String,
     val password: String,
     val role: String = "TENANT",
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    // Datos de perfil
+    val nombre: String = "",
+    val apellidos: String = "",
+    val telefono: String = "",
+    val dni: String = "",
+    // Solo TENANT
+    val propertyAddress: String = "",
+    // Solo AGENCY
+    val agenciaNombre: String = "",
+    val agenciaCif: String = "",
+    // Solo MAINTENANCE
+    val especialidad: String = ""
 )

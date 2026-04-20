@@ -1,5 +1,5 @@
 package com.example.inmobiliacontrol.ui.login
-//
+
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import com.example.inmobiliacontrol.Role
@@ -15,7 +15,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 data class LoginUiState(
-    val role: Role = Role.TENANT,
     val email: String = "",
     val password: String = "",
     val error: String? = null,
@@ -34,10 +33,6 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState
 
-    fun setRole(role: Role) {
-        _uiState.update { it.copy(role = role, error = null) }
-    }
-
     fun setEmail(email: String) {
         _uiState.update { it.copy(email = email, error = null) }
     }
@@ -50,15 +45,9 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         val state = _uiState.value
         val email = state.email.trim()
         val password = state.password
-        val role = state.role
 
         if (email.isBlank() || password.isBlank()) {
-            _uiState.update { it.copy(error = "Todos los campos son obligatorios") }
-            return
-        }
-
-        if (password.length < 4) {
-            _uiState.update { it.copy(error = "La contraseña debe tener al menos 4 caracteres") }
+            _uiState.update { it.copy(error = "Introduce tu email y contraseña") }
             return
         }
 
@@ -66,32 +55,31 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
         scope.launch {
             try {
-                val userId = withContext(Dispatchers.IO) {
+                val result: Pair<Int, Role>? = withContext(Dispatchers.IO) {
                     val existingUser = repo.login(email, password)
                     if (existingUser != null) {
-                        existingUser.id
+                        val dbRole = try {
+                            Role.valueOf(existingUser.role)
+                        } catch (e: IllegalArgumentException) {
+                            Role.TENANT
+                        }
+                        Pair(existingUser.id, dbRole)
                     } else {
-                        repo.register(email, password, role.name).toInt()
+                        null
                     }
                 }
 
-                if (userId > 0) {
+                if (result != null) {
                     _uiState.update { it.copy(loading = false, error = null) }
-                    onSuccess(role, userId)
+                    onSuccess(result.second, result.first)
                 } else {
                     _uiState.update {
-                        it.copy(
-                            loading = false,
-                            error = "No se pudo recuperar el usuario"
-                        )
+                        it.copy(loading = false, error = "Email o contraseña incorrectos")
                     }
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(
-                        loading = false,
-                        error = "Error de base de datos: ${e.message ?: "desconocido"}"
-                    )
+                    it.copy(loading = false, error = "Error: ${e.message ?: "desconocido"}")
                 }
             }
         }
