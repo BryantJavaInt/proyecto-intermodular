@@ -24,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +44,7 @@ import com.example.inmobiliacontrol.entity.Ticket
 import com.example.inmobiliacontrol.repository.CommentRepository
 import com.example.inmobiliacontrol.repository.PropertyRepository
 import com.example.inmobiliacontrol.repository.TicketRepository
+import com.example.inmobiliacontrol.repository.UserRepository
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -63,11 +63,14 @@ fun TicketListScreen(
     val ticketRepository = remember { TicketRepository(db.ticketDao()) }
     val propertyRepository = remember { PropertyRepository(db.propertyDao()) }
     val commentRepository = remember { CommentRepository(db.commentDao()) }
+    val userRepository = remember { UserRepository(db.userDao()) }
 
     val tickets = remember { mutableStateListOf<Ticket>() }
     val propertyMap = remember { mutableStateMapOf<Int, Property>() }
     val commentCountMap = remember { mutableStateMapOf<Int, Int>() }
     var loading by remember { mutableStateOf(true) }
+    // Especialidad del técnico de mantenimiento logueado
+    var especialidad by remember { mutableStateOf("") }
 
     fun recargarTickets() {
         scope.launch {
@@ -75,6 +78,12 @@ fun TicketListScreen(
             tickets.clear()
             propertyMap.clear()
             commentCountMap.clear()
+
+            // Si es MAINTENANCE cargar su especialidad desde la BD
+            if (role == Role.MAINTENANCE) {
+                val user = userRepository.getById(userId)
+                especialidad = user?.especialidad ?: ""
+            }
 
             val allData = when (role) {
                 Role.TENANT -> ticketRepository.getTicketsByUser(userId)
@@ -84,9 +93,14 @@ fun TicketListScreen(
             val filteredData = when (role) {
                 Role.TENANT -> allData
                 Role.AGENCY -> allData
-                Role.MAINTENANCE -> allData.filter {
-                    it.status.equals("En proceso", ignoreCase = true) ||
-                            it.status.equals("Cerrado", ignoreCase = true)
+                Role.MAINTENANCE -> allData.filter { ticket ->
+                    // Filtro 1: solo tickets En proceso o Cerrado
+                    val estadoOk = ticket.status.equals("En proceso", ignoreCase = true) ||
+                            ticket.status.equals("Cerrado", ignoreCase = true)
+                    // Filtro 2: solo tickets cuya categoría coincide con su especialidad
+                    val categoriaOk = especialidad.isBlank() ||
+                            ticket.category.equals(especialidad, ignoreCase = true)
+                    estadoOk && categoriaOk
                 }
             }
 
@@ -99,7 +113,7 @@ fun TicketListScreen(
                 }
             }
 
-            // Cargar conteo de comentarios por ticket
+            // Contar comentarios por ticket
             filteredData.forEach { ticket ->
                 val count = commentRepository.getCommentsByTicket(ticket.ticketId).size
                 commentCountMap[ticket.ticketId] = count
@@ -124,10 +138,26 @@ fun TicketListScreen(
                     modifier = Modifier.fillMaxSize().padding(24.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "No hay incidencias registradas todavía.",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "🛠️", style = MaterialTheme.typography.headlineLarge)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = if (role == Role.MAINTENANCE && especialidad.isNotBlank())
+                                "No hay incidencias de $especialidad en proceso."
+                            else
+                                "No hay incidencias registradas todavía.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color(0xFF616161)
+                        )
+                        if (role == Role.MAINTENANCE && especialidad.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Tu especialidad: $especialidad",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF9E9E9E)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -137,9 +167,12 @@ fun TicketListScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     item {
-                        TicketListHeader(role = role, total = tickets.size)
+                        TicketListHeader(
+                            role = role,
+                            total = tickets.size,
+                            especialidad = especialidad
+                        )
                     }
-
                     items(tickets, key = { it.ticketId }) { ticket ->
                         TicketCard(
                             ticket = ticket,
@@ -162,16 +195,19 @@ fun TicketListScreen(
 }
 
 @Composable
-fun TicketListHeader(role: Role, total: Int) {
+fun TicketListHeader(role: Role, total: Int, especialidad: String = "") {
     val title = when (role) {
         Role.TENANT -> "Mis incidencias"
         Role.AGENCY -> "Gestión de incidencias"
-        Role.MAINTENANCE -> "Incidencias asignadas"
+        Role.MAINTENANCE -> if (especialidad.isNotBlank()) "Incidencias de $especialidad" else "Incidencias asignadas"
     }
     val subtitle = when (role) {
         Role.TENANT -> "Consulta el estado y habla con la agencia desde cada incidencia."
         Role.AGENCY -> "Revisa todas las incidencias y gestiona sus estados."
-        Role.MAINTENANCE -> "Incidencias en proceso o cerradas."
+        Role.MAINTENANCE -> if (especialidad.isNotBlank())
+            "Solo ves las incidencias de tu especialidad: $especialidad."
+        else
+            "Incidencias en proceso o cerradas."
     }
 
     Column(
@@ -179,11 +215,46 @@ fun TicketListHeader(role: Role, total: Int) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        Text(text = title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = subtitle, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF616161))
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFF616161)
+        )
         Spacer(modifier = Modifier.height(6.dp))
-        Text(text = "Total: $total", style = MaterialTheme.typography.bodySmall, color = Color(0xFF757575))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Total: $total",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF757575)
+            )
+            // Badge de especialidad visible solo para MAINTENANCE
+            if (role == Role.MAINTENANCE && especialidad.isNotBlank()) {
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = Color(0xFF6A1B9A).copy(alpha = 0.1f),
+                            shape = MaterialTheme.shapes.small
+                        )
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "🛠️ $especialidad",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF6A1B9A),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -213,11 +284,7 @@ fun TicketCard(
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
 
-            // Fila superior: icono + título + badge comentarios
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                 Text(
                     text = categoryIcon(ticket.category),
                     style = MaterialTheme.typography.headlineSmall
@@ -237,33 +304,26 @@ fun TicketCard(
                         color = Color(0xFF9E9E9E)
                     )
                 }
-
-                // Badge con número de comentarios
-                Box(contentAlignment = Alignment.TopEnd) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .background(
-                                    color = if (commentCount > 0) Color(0xFF1565C0) else Color(0xFFE0E0E0),
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = if (commentCount > 9) "9+" else commentCount.toString(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (commentCount > 0) Color.White else Color(0xFF9E9E9E),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            )
-                        }
+                // Badge comentarios
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(
+                                color = if (commentCount > 0) Color(0xFF1565C0) else Color(0xFFE0E0E0),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = "💬",
+                            text = if (commentCount > 9) "9+" else commentCount.toString(),
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp
+                            color = if (commentCount > 0) Color.White else Color(0xFF9E9E9E),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
                         )
                     }
+                    Text(text = "💬", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
                 }
             }
 
@@ -295,7 +355,6 @@ fun TicketCard(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-
             Text(
                 text = ticket.description,
                 style = MaterialTheme.typography.bodyMedium,
@@ -305,7 +364,10 @@ fun TicketCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 StatusChip(
                     text = ticket.status.uppercase(),
                     backgroundColor = estadoBg,
@@ -331,9 +393,18 @@ fun TicketCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Button(onClick = { onChangeStatus("Abierto") }, modifier = Modifier.weight(1f)) { Text("Abierto") }
-                    Button(onClick = { onChangeStatus("En proceso") }, modifier = Modifier.weight(1f)) { Text("Proceso") }
-                    Button(onClick = { onChangeStatus("Cerrado") }, modifier = Modifier.weight(1f)) { Text("Cerrado") }
+                    Button(
+                        onClick = { onChangeStatus("Abierto") },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Abierto") }
+                    Button(
+                        onClick = { onChangeStatus("En proceso") },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Proceso") }
+                    Button(
+                        onClick = { onChangeStatus("Cerrado") },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Cerrado") }
                 }
             }
 
@@ -420,6 +491,8 @@ fun categoryIcon(category: String): String {
         "pintura" -> "🖌️"
         "electrodomésticos" -> "🧺"
         "humedades" -> "💧"
+        "climatización" -> "❄️"
+        "albañilería" -> "🧱"
         else -> "🏠"
     }
 }
