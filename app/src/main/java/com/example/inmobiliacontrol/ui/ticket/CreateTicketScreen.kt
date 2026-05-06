@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,19 +16,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -37,7 +33,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.inmobiliacontrol.Role
 import com.example.inmobiliacontrol.database.InmobiliaDatabase
-import com.example.inmobiliacontrol.entity.Property
 import com.example.inmobiliacontrol.repository.PropertyRepository
 import com.example.inmobiliacontrol.repository.TicketRepository
 import kotlinx.coroutines.launch
@@ -48,7 +43,8 @@ import java.util.Locale
 fun CreateTicketScreen(
     role: Role,
     userId: Int,
-    onSubmit: () -> Unit = {}
+    onSubmit: () -> Unit = {},
+    onGoHome: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -73,7 +69,6 @@ fun CreateTicketScreen(
     var fechaDisponible by remember { mutableStateOf("") }
     var horaDisponible by remember { mutableStateOf("") }
 
-    // ── PROPIEDAD: texto libre + referencia opcional ──────────────────
     var addressInput by remember { mutableStateOf("") }
     var referenceInput by remember { mutableStateOf("") }
 
@@ -81,7 +76,6 @@ fun CreateTicketScreen(
     var error by remember { mutableStateOf<String?>(null) }
 
     val puedeElegirPrioridad = role == Role.AGENCY
-
     val calendar = remember { Calendar.getInstance() }
 
     val datePickerDialog = remember {
@@ -89,7 +83,11 @@ fun CreateTicketScreen(
             context,
             { _, year, month, dayOfMonth ->
                 fechaDisponible = String.format(
-                    Locale.getDefault(), "%02d/%02d/%04d", dayOfMonth, month + 1, year
+                    Locale.getDefault(),
+                    "%02d/%02d/%04d",
+                    dayOfMonth,
+                    month + 1,
+                    year
                 )
             },
             calendar.get(Calendar.YEAR),
@@ -102,7 +100,12 @@ fun CreateTicketScreen(
         TimePickerDialog(
             context,
             { _, hourOfDay, minute ->
-                horaDisponible = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute)
+                horaDisponible = String.format(
+                    Locale.getDefault(),
+                    "%02d:%02d",
+                    hourOfDay,
+                    minute
+                )
             },
             calendar.get(Calendar.HOUR_OF_DAY),
             calendar.get(Calendar.MINUTE),
@@ -134,13 +137,15 @@ fun CreateTicketScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── PROPIEDAD: campo libre ────────────────────────────────
             SectionLabel("Propiedad *")
             Spacer(modifier = Modifier.height(6.dp))
 
             OutlinedTextField(
                 value = addressInput,
-                onValueChange = { addressInput = it; error = null },
+                onValueChange = {
+                    addressInput = it
+                    error = null
+                },
                 label = { Text("Dirección") },
                 placeholder = { Text("Ej: Calle Mayor 10, Madrid") },
                 modifier = Modifier.fillMaxWidth(),
@@ -160,7 +165,6 @@ fun CreateTicketScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── CATEGORÍA ─────────────────────────────────────────────
             SectionLabel("Categoría *")
             Spacer(modifier = Modifier.height(6.dp))
 
@@ -173,12 +177,14 @@ fun CreateTicketScreen(
                     placeholder = { Text("Selecciona una categoría") },
                     trailingIcon = { Text("▼") }
                 )
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
                         .clickable { categoriaExpanded = true }
                 )
+
                 DropdownMenu(
                     expanded = categoriaExpanded,
                     onDismissRequest = { categoriaExpanded = false }
@@ -198,10 +204,12 @@ fun CreateTicketScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── TÍTULO ────────────────────────────────────────────────
             OutlinedTextField(
                 value = titulo,
-                onValueChange = { titulo = it; error = null },
+                onValueChange = {
+                    titulo = it
+                    error = null
+                },
                 label = { Text("Título *") },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("Ej: Fuga en el baño") },
@@ -210,10 +218,12 @@ fun CreateTicketScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ── DESCRIPCIÓN ───────────────────────────────────────────
             OutlinedTextField(
                 value = descripcion,
-                onValueChange = { descripcion = it; error = null },
+                onValueChange = {
+                    descripcion = it
+                    error = null
+                },
                 label = { Text("Descripción *") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 4,
@@ -222,7 +232,6 @@ fun CreateTicketScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ── PRIORIDAD (solo AGENCY, dropdown) ─────────────────────
             if (puedeElegirPrioridad) {
                 SectionLabel("Prioridad")
                 Spacer(modifier = Modifier.height(6.dp))
@@ -235,12 +244,14 @@ fun CreateTicketScreen(
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = { Text("▼") }
                     )
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp)
                             .clickable { prioridadExpanded = true }
                     )
+
                     DropdownMenu(
                         expanded = prioridadExpanded,
                         onDismissRequest = { prioridadExpanded = false }
@@ -256,10 +267,10 @@ fun CreateTicketScreen(
                         }
                     }
                 }
+
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // ── FECHA DISPONIBLE ──────────────────────────────────────
             SectionLabel("Fecha disponible")
             Spacer(modifier = Modifier.height(6.dp))
 
@@ -272,6 +283,7 @@ fun CreateTicketScreen(
                     placeholder = { Text("Selecciona una fecha") },
                     trailingIcon = { Text("📅") }
                 )
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -282,7 +294,6 @@ fun CreateTicketScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ── HORA DISPONIBLE ───────────────────────────────────────
             SectionLabel("Hora disponible")
             Spacer(modifier = Modifier.height(6.dp))
 
@@ -295,6 +306,7 @@ fun CreateTicketScreen(
                     placeholder = { Text("Selecciona una hora") },
                     trailingIcon = { Text("🕒") }
                 )
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -305,19 +317,18 @@ fun CreateTicketScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── ERROR ─────────────────────────────────────────────────
             error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error)
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // ── BOTÓN CREAR ───────────────────────────────────────────
             Button(
                 onClick = {
                     if (addressInput.isBlank()) {
                         error = "Introduce la dirección de la propiedad"
                         return@Button
                     }
+
                     if (categoria.isBlank() || titulo.isBlank() || descripcion.isBlank()) {
                         error = "Rellena todos los campos obligatorios (*)"
                         return@Button
@@ -329,11 +340,10 @@ fun CreateTicketScreen(
 
                     scope.launch {
                         try {
-                            // Buscar si ya existe esa propiedad exacta, si no crearla
                             val allProps = propertyRepository.getAllProperties()
                             val existing = allProps.firstOrNull {
                                 it.address.equals(addressInput.trim(), ignoreCase = true) &&
-                                it.reference.equals(referenceInput.trim(), ignoreCase = true)
+                                        it.reference.equals(referenceInput.trim(), ignoreCase = true)
                             }
 
                             val propertyId: Int = if (existing != null) {
@@ -369,6 +379,15 @@ fun CreateTicketScreen(
                 Text(if (loading) "Guardando..." else "Crear incidencia")
             }
 
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = onGoHome,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(panelButtonText(role))
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
@@ -384,6 +403,4 @@ private fun SectionLabel(text: String) {
     )
 }
 
-private fun formatSelectedPropertyLabel(property: Property): String {
-    return "${property.address} - ${property.reference}"
-}
+

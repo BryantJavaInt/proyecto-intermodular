@@ -97,6 +97,11 @@ class MainActivity : ComponentActivity() {
                             userId = userId,
                             onOpenDetail = { ticketId ->
                                 navController.navigate("ticket_detail/${role.name}/$userId/$ticketId")
+                            },
+                            onGoHome = {
+                                navController.navigate("home/${role.name}/$userId") {
+                                    launchSingleTop = true
+                                }
                             }
                         )
                     }
@@ -118,6 +123,11 @@ class MainActivity : ComponentActivity() {
                             onSubmit = {
                                 navController.navigate("ticket_list/${role.name}/$userId") {
                                     popUpTo("create_ticket/${role.name}/$userId") { inclusive = true }
+                                }
+                            },
+                            onGoHome = {
+                                navController.navigate("home/${role.name}/$userId") {
+                                    launchSingleTop = true
                                 }
                             }
                         )
